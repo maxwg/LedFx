@@ -1463,6 +1463,7 @@ ledfx_presets = {
     "bands": {"reset": {"config": {}, "name": "Reset"}},
     "bands_matrix": {"reset": {"config": {}, "name": "Reset"}},
     "block_reflections": {"reset": {"config": {}, "name": "Reset"}},
+    "Chromance-Basic-Ripple": {"reset": {"config": {}, "name": "Reset"}},
     "crawler": {"reset": {"config": {}, "name": "Reset"}},
     "blocks": {"reset": {"config": {}, "name": "Reset"}},
     "energy2": {"reset": {"config": {}, "name": "Reset"}},
