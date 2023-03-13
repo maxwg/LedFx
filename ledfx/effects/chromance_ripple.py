@@ -5,7 +5,7 @@ from time import time
 from enum import Enum
 from random import randint
 # from chromance_base import nodeConnections, segmentConnections, ledAssignments
-from ledfx.effects.chromance_config import nodeConnections, segmentConnections, ledAssignments
+from ledfx.effects.chromance_config import ledAssignments
 from ledfx.effects.audio import AudioReactiveEffect
 from ledfx.effects.gradient import GradientEffect
 
@@ -47,8 +47,11 @@ class Ripple:
     birthday = 0  # Used to track age of ripple
     rippleCount = 0  # Used to give them unique ID's
 
+    nodeConnections = []
+    segmentConnections = []
+
     # Place the Ripple in a node
-    def start(self, node, direction, color, speed, lifespan, behavior):
+    def start(self, node, direction, color, speed, lifespan, behavior, nodeConnections, segmentConnections):
         self.color = color
         self.speed = speed
         self.lifespan = lifespan
@@ -59,6 +62,8 @@ class Ripple:
         self.state = RippleState.withinNode
 
         self.position = [node, direction]
+        self.nodeConnections = nodeConnections
+        self.segmentConnections = segmentConnections
 
         self.justStarted = True
 
@@ -89,10 +94,15 @@ class Ripple:
 
                     if self.behavior <= 2:
                         anger = self.behavior
-
+                        loops = 0
                         while newDirection < 0:
+                            loops += 1
+                            if loops > 4:
+                                self.state = RippleState.dead # Reached Dead End\
+                                return
+
                             if anger == 0:
-                                forwardConnection = nodeConnections[self.position[0]][forward]
+                                forwardConnection = self.nodeConnections[self.position[0]][forward]
 
                                 if forwardConnection < 0:
                                     anger += 1
@@ -100,8 +110,8 @@ class Ripple:
                                     newDirection = forward
 
                             if anger == 1:
-                                leftConnection = nodeConnections[self.position[0]][wideLeft]
-                                rightConnection = nodeConnections[self.position[0]][wideRight]
+                                leftConnection = self.nodeConnections[self.position[0]][wideLeft]
+                                rightConnection = self.nodeConnections[self.position[0]][wideRight]
 
                                 if leftConnection >= 0 and rightConnection >= 0:
                                     newDirection = wideLeft if randint(0,1) == 1 else wideRight
@@ -110,11 +120,11 @@ class Ripple:
                                 elif rightConnection >= 0:
                                     newDirection = wideRight
                                 else:
-                                    anger += 1
+                                    anger += -1 if randint(0,1) == 0 else 1
 
                             if anger == 2:
-                                leftConnection = nodeConnections[self.position[0]][sharpLeft]
-                                rightConnection = nodeConnections[self.position[0]][sharpRight]
+                                leftConnection = self.nodeConnections[self.position[0]][sharpLeft]
+                                rightConnection = self.nodeConnections[self.position[0]][sharpRight]
 
                                 if leftConnection >= 0 and rightConnection >= 0:
                                     newDirection = sharpLeft if randint(0,1) == 1 else sharpRight
@@ -128,7 +138,7 @@ class Ripple:
                         for i in range(1, 6):
                             possibleDirection = (self.position[1] + i) % 6
 
-                            if nodeConnections[self.position[0]][possibleDirection] >= 0:
+                            if self.nodeConnections[self.position[0]][possibleDirection] >= 0:
                                 newDirection = possibleDirection
                                 break
 
@@ -136,12 +146,12 @@ class Ripple:
                         for i in range(5, 0, -1):
                             possibleDirection = (self.position[1] + i) % 6
 
-                            if nodeConnections[self.position[0]][possibleDirection] >= 0:
+                            if self.nodeConnections[self.position[0]][possibleDirection] >= 0:
                                 newDirection = possibleDirection
                                 break
                     self.position[1] = newDirection
 
-                self.position[0] = nodeConnections[self.position[0]][self.position[1]]
+                self.position[0] = self.nodeConnections[self.position[0]][self.position[1]]
                 # Look up which segment we're on
 
                 if self.position[1] == 5 or self.position[1] == 0 or self.position[1] == 1:
@@ -157,11 +167,11 @@ class Ripple:
                 if self.position[1] >= 14:
                     # We've reached the top!
                     segment = self.position[0]
-                    self.position[0] = segmentConnections[self.position[0]][0]
+                    self.position[0] = self.segmentConnections[self.position[0]][0]
                     for i in range(6):
                         # Figure out from which direction the ripple is entering the node.
                         # Allows us to exit in an appropriately aggressive direction.
-                        incomingConnection = nodeConnections[self.position[0]][i]
+                        incomingConnection = self.nodeConnections[self.position[0]][i]
                         if incomingConnection == segment:
                             self.position[1] = i
                     self.state = RippleState.withinNode
@@ -173,11 +183,11 @@ class Ripple:
                 if self.position[1] < 0:
                     # We've reached the bottom!
                     segment = self.position[0]
-                    self.position[0] = segmentConnections[self.position[0]][1]
+                    self.position[0] = self.segmentConnections[self.position[0]][1]
                     for i in range(6):
                         # Figure out from which direction the ripple is entering the node.
                         # Allows us to exit in an appropriately aggressive direction.
-                        incomingConnection = nodeConnections[self.position[0]][i]
+                        incomingConnection = self.nodeConnections[self.position[0]][i]
                         if incomingConnection == segment:
                             self.position[1] = i
                     self.state = RippleState.withinNode
@@ -195,8 +205,6 @@ class Ripple:
             self.position[0] = self.position[1] = pressure = age = 0
 
     def renderLed(self, ledColors, age):
-        # strip = ledAssignments[position[0]][0]
-        # led = ledAssignments[position[0]][2] + position[1]
         red = ledColors[self.position[0]][self.position[1]][0]
         green = ledColors[self.position[0]][self.position[1]][1]
         blue = ledColors[self.position[0]][self.position[1]][2]
