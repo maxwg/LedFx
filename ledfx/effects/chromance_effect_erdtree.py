@@ -77,6 +77,7 @@ class ChromanceRippleEffect(TemporalEffect):
     future = None
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop) # Here
+    volumeSmooth = 0
 
     CONFIG_SCHEMA = vol.Schema(
         {
@@ -168,7 +169,9 @@ class ChromanceRippleEffect(TemporalEffect):
         useCol = rippleColors
         if self.volume > 10:
             spawnChance = 200
-        if self.volume > 30:
+        if self.volume > 20:
+            spawnChance = 80
+        if self.volume > 40:
             spawnChance = 20
             useCol = intenseRippleColors
         if self.volume > 100:
@@ -228,6 +231,8 @@ class ChromanceRippleEffect(TemporalEffect):
         self.lightSegment(pixels, 35, baseCol)
         self.lightSegment(pixels, 36, baseCol)
 
-        multiplier = (math.log10(self.volume+1)+2)/2
+        # smoothly transition volume
+        self.volumeSmooth = self.volumeSmooth * 0.8 + self.volume * 0.2
+        multiplier = (math.log10(self.volumeSmooth+1)+2)/2
 
         self.pixels = pixels * multiplier
