@@ -54,9 +54,9 @@ nodeConnections = [
 
 
 rippleColors = [
-    [150, 110, 80],
+    [150, 120, 80],
     [150, 90, 50],
-    [150, 110, 20],
+    [150, 120, 20],
     [150, 100, 30],
     [150, 80, 30],
     [150, 90, 0],
@@ -110,8 +110,15 @@ class ChromanceRippleEffect(TemporalEffect):
 
     def lightSegment(self, pixels, segment, color):
         leds = ledAssignments[segment]
-        m, M = min(leds), max(leds)
-        pixels[m:M + 1] = np.maximum(pixels[m:M + 1], color)
+        m = min(leds[0], leds[1])
+        M = max(leds[0], leds[1])
+        for i in range(m, M + 1):
+            pixels[i][0] = max(color[0], pixels[i][0])
+            pixels[i][1] = max(color[1], pixels[i][1])
+            pixels[i][2] = max(color[2], pixels[i][2])
+        # leds = ledAssignments[segment]
+        # m, M = min(leds), max(leds)
+        # pixels[m:M + 1] = np.maximum(pixels[m:M + 1], color)
 
     async def get_audio(self, future):
         # Open a streaming session
@@ -157,12 +164,12 @@ class ChromanceRippleEffect(TemporalEffect):
     def render(self):
         self.phase += 0.1
 
-        spawnChance = 800
+        spawnChance = 500
         useCol = rippleColors
         if self.volume > 10:
-            spawnChance = 200
+            spawnChance = 100
         if self.volume > 30:
-            spawnChance = 20
+            spawnChance = 10
             useCol = intenseRippleColors
         if self.volume > 100:
             spawnChance = 2
@@ -178,7 +185,7 @@ class ChromanceRippleEffect(TemporalEffect):
             else:
                 ripple.advance(self.r)
 
-        self.r *= 0.95
+        self.r *= 0.94
         self.r[np.average(self.r, axis=2) < 10] = [0, 0, 0]
         # for i in range (0, 40):
         #     for j in range (0, 14):
@@ -190,9 +197,10 @@ class ChromanceRippleEffect(TemporalEffect):
         for segment in range(0, 40):
             for fromBottom in range(0, 14):
                 led = round(fmap(fromBottom, 0, 13, ledAssignments[segment][1], ledAssignments[segment][0]))
-                pixels[led][0] = self.r[segment][fromBottom][0]
-                pixels[led][1] = self.r[segment][fromBottom][1]
-                pixels[led][2] = self.r[segment][fromBottom][2]
+                pixels[led] = self.r[segment][fromBottom]
+                # pixels[led][0] = self.r[segment][fromBottom][0]
+                # pixels[led][1] = self.r[segment][fromBottom][1]
+                # pixels[led][2] = self.r[segment][fromBottom][2]
 
         glowVal = 10
         glowAdd = self.phase % (glowVal * 2)
@@ -223,4 +231,3 @@ class ChromanceRippleEffect(TemporalEffect):
         multiplier = math.log10(self.volume+1)+1
 
         self.pixels = pixels * multiplier
-        self.volume = 0
