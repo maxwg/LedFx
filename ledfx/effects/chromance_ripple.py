@@ -102,7 +102,7 @@ class Ripple:
                         loops = 0
                         while newDirection < 0:
                             loops += 1
-                            if loops > 4:
+                            if loops > 3:
                                 self.state = RippleState.dead # Reached Dead End\
                                 return
 

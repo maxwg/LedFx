@@ -11,6 +11,7 @@ from random import uniform
 import requests
 import audioop
 import asyncio
+import math
 
 # IP Webcam server URL
 url = 'http://192.168.50.142:8080/audio.wav'
@@ -53,9 +54,9 @@ nodeConnections = [
 
 
 rippleColors = [
-    [150, 120, 80],
+    [150, 110, 80],
     [150, 90, 50],
-    [150, 120, 20],
+    [150, 110, 20],
     [150, 100, 30],
     [150, 80, 30],
     [150, 90, 0],
@@ -109,12 +110,8 @@ class ChromanceRippleEffect(TemporalEffect):
 
     def lightSegment(self, pixels, segment, color):
         leds = ledAssignments[segment]
-        m = min(leds[0], leds[1])
-        M = max(leds[0], leds[1])
-        for i in range(m, M + 1):
-            pixels[i][0] = max(color[0], pixels[i][0])
-            pixels[i][1] = max(color[1], pixels[i][1])
-            pixels[i][2] = max(color[2], pixels[i][2])
+        m, M = min(leds), max(leds)
+        pixels[m:M + 1] = np.maximum(pixels[m:M + 1], color)
 
     async def get_audio(self, future):
         # Open a streaming session
@@ -158,17 +155,17 @@ class ChromanceRippleEffect(TemporalEffect):
             return
 
     def render(self):
-        self.phase += 0.2
+        self.phase += 0.1
 
-        spawnChance = 500
+        spawnChance = 800
         useCol = rippleColors
         if self.volume > 10:
-            spawnChance = 100
+            spawnChance = 200
         if self.volume > 30:
-            spawnChance = 10
+            spawnChance = 20
             useCol = intenseRippleColors
-        if self.volume > 80:
-            spawnChance = 1
+        if self.volume > 100:
+            spawnChance = 2
             useCol = intenseRippleColors
 
         for i in range(0, len(self.ripples)):
@@ -180,25 +177,28 @@ class ChromanceRippleEffect(TemporalEffect):
                                  nodeConnections, segmentConnections)
             else:
                 ripple.advance(self.r)
-        for i in range (0, 40):
-            for j in range (0, 14):
-                self.r[i][j] = self.r[i][j] * 0.94
-                if np.average(self.r[i][j]) < 10:
-                    self.r[i][j] = [0,0,0] # too dark to show well
+
+        self.r *= 0.95
+        self.r[np.average(self.r, axis=2) < 10] = [0, 0, 0]
+        # for i in range (0, 40):
+        #     for j in range (0, 14):
+        #         self.r[i][j] = self.r[i][j] * 0.94
+        #         if np.average(self.r[i][j]) < 10:
+        #             self.r[i][j] = [0,0,0] # too dark to show well
 
         pixels = np.zeros((560, 3))
         for segment in range(0, 40):
             for fromBottom in range(0, 14):
                 led = round(fmap(fromBottom, 0, 13, ledAssignments[segment][1], ledAssignments[segment][0]))
                 pixels[led][0] = self.r[segment][fromBottom][0]
-                pixels[led][1] = min(self.r[segment][fromBottom][1], self.r[segment][fromBottom][0]* 0.9)
-                pixels[led][2] = min(self.r[segment][fromBottom][2], self.r[segment][fromBottom][0]* 0.75)
+                pixels[led][1] = self.r[segment][fromBottom][1]
+                pixels[led][2] = self.r[segment][fromBottom][2]
 
         glowVal = 10
         glowAdd = self.phase % (glowVal * 2)
         if glowAdd > glowVal:
             glowAdd = glowVal - (glowAdd % glowVal)
-        baseCol = (20 + glowAdd, 15, 0)
+        baseCol = (35 + glowAdd, 15, glowVal/2 - glowAdd/2)
         self.lightSegment(pixels, 31, baseCol)
         self.lightSegment(pixels, 15, baseCol)
         self.lightSegment(pixels, 26, baseCol)
@@ -217,5 +217,10 @@ class ChromanceRippleEffect(TemporalEffect):
         self.lightSegment(pixels, 16, baseCol)
         self.lightSegment(pixels, 1, baseCol)
         self.lightSegment(pixels, 4, baseCol)
+        self.lightSegment(pixels, 35, baseCol)
+        self.lightSegment(pixels, 36, baseCol)
 
-        self.pixels = pixels
+        multiplier = math.log10(self.volume+1)+1
+
+        self.pixels = pixels * multiplier
+        self.volume = 0
