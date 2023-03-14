@@ -141,7 +141,6 @@ class ChromanceRippleEffect(TemporalEffect):
 
     def render(self):
         self.get_audio_sync()
-        print(self.volume)
 
         self.phase += 0.2
 
