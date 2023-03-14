@@ -6,8 +6,15 @@ from enum import Enum
 from random import randint
 from ledfx.effects.chromance_ripple import Ripple, RippleState, fmap
 from ledfx.effects.chromance_config import segmentConnections, ledAssignments
-from ledfx.effects.audio import AudioReactiveEffect
+from ledfx.effects.temporal import TemporalEffect
 from random import uniform
+import requests
+import audioop
+import asyncio
+
+# IP Webcam server URL
+url = 'http://192.168.50.142:8080/audio.wav'
+
 
 
 
@@ -60,11 +67,13 @@ intenseRippleColors = [
     [255, 30, 0]
 ]
 
-class ChromanceRippleEffect(AudioReactiveEffect):
+class ChromanceRippleEffect(TemporalEffect):
     NAME = "Chromance-Erdtree"
     CATEGORY = "2D"
     phase = 0
-    aud = 0
+    volume = 0
+    task = None
+    future = None
 
     CONFIG_SCHEMA = vol.Schema(
         {
@@ -99,20 +108,52 @@ class ChromanceRippleEffect(AudioReactiveEffect):
             pixels[i][1] = max(color[1], pixels[i][1])
             pixels[i][2] = max(color[2], pixels[i][2])
 
-    def audio_data_updated(self, data):
-        # Grab the filtered melbank
-        self.aud = np.sum(self.melbank(filtered=True, size=100))
+    async def get_audio(self, future):
+        # Open a streaming session
+        session = requests.Session()
+        response = session.get(url, stream=True)
+        try:
+            # Read a 10ms audio chunk from the stream
+            chunk = response.raw.read(int(16000 / 100))
+            if not chunk:
+                return
+            # Calculate volume using audioop
+            volume = audioop.rms(chunk, 2) - 7366
+            # print(f"Volume: {volume}")
+            future.set_result(volume)
+            return volume
+        except:
+            """"""
+
+    def get_audio_sync(self):
+        try:
+            if self.task is None:
+                self.loop = asyncio.new_event_loop()
+                self.future = self.loop.create_future()
+                self.loop.run_until_complete(self.get_audio(self.future))
+
+        except Exception as err:
+            print(err)
+        if self.future.done():
+            self.volume = self.future.result()
+            self.loop.close()
+            self.task = None
 
     def render(self):
+        self.get_audio_sync()
+        print(self.volume)
+
         self.phase += 0.2
 
         spawnChance = 300
         useCol = rippleColors
-        print(self.aud)
-        if self.aud > 5:
+        if self.volume > 5:
             spawnChance = 100
-        if self.aud > 15:
-            spawnChance = 2
+        if self.volume > 20:
+            spawnChance = 10
+            useCol = intenseRippleColors
+        if self.volume > 50:
+            spawnChance = 1
             useCol = intenseRippleColors
 
         for i in range(0, len(self.ripples)):
@@ -120,7 +161,6 @@ class ChromanceRippleEffect(AudioReactiveEffect):
             if ripple.state == RippleState.dead:
                 if randint(0, spawnChance) == 0:
                     color = useCol[randint(0, len(useCol) - 1)]
-                    print(color)
                     ripple.start(20 if randint(0,1) == 1 else 15, 0, color, uniform(0.6, 2), uniform(1000, 6000), 1,
                                  nodeConnections, segmentConnections)
             else:
