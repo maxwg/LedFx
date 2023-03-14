@@ -123,15 +123,16 @@ class ChromanceRippleEffect(TemporalEffect):
             future.set_result(volume)
             return volume
         except:
-            """"""
+            return
 
-    def get_audio_sync(self):
+    async def get_audio_sync(self):
         try:
             if self.task is None:
                 self.loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(self.loop) # Here
                 self.future = self.loop.create_future()
                 # self.loop.run_until_complete(self.get_audio(self.future))
-                asyncio.run(self.get_audio(self.future))
+                self.task = asyncio.create_task(self.get_audio(self.future))
 
         except Exception as err:
             print(err)
@@ -141,8 +142,7 @@ class ChromanceRippleEffect(TemporalEffect):
             self.task = None
 
     def render(self):
-        self.get_audio_sync()
-        print(self.volume)
+        asyncio.run(self.get_audio_sync())
         self.phase += 0.2
 
         spawnChance = 300
