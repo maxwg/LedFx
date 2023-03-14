@@ -74,6 +74,8 @@ class ChromanceRippleEffect(TemporalEffect):
     volume = 0
     task = None
     future = None
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop) # Here
 
     CONFIG_SCHEMA = vol.Schema(
         {
@@ -98,6 +100,12 @@ class ChromanceRippleEffect(TemporalEffect):
     def on_activate(self, pixel_count):
         self.r = np.zeros((40, 14, 3))
         self.ripples = [Ripple(i) for i in range(0, 20)]
+        asyncio.create_task(self.run_forever())
+
+    async def run_forever(self):
+        while True:
+            await self.get_audio_sync()
+            await asyncio.sleep(0.02)
 
     def lightSegment(self, pixels, segment, color):
         leds = ledAssignments[segment]
@@ -113,12 +121,12 @@ class ChromanceRippleEffect(TemporalEffect):
         session = requests.Session()
         response = session.get(url, stream=True)
         try:
-            # Read a 10ms audio chunk from the stream
-            chunk = response.raw.read(int(16000 / 100))
+            # Read a 50ms audio chunk from the stream
+            chunk = response.raw.read(int(16000 / 20))
             if not chunk:
                 return
             # Calculate volume using audioop
-            volume = audioop.rms(chunk, 2) - 7366
+            volume = audioop.rms(chunk, 2) - 3294
             # print(f"Volume: {volume}")
             future.set_result(volume)
             return volume
@@ -128,22 +136,30 @@ class ChromanceRippleEffect(TemporalEffect):
     async def get_audio_sync(self):
         try:
             if self.task is None:
-                self.loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(self.loop) # Here
                 self.future = self.loop.create_future()
                 # self.loop.run_until_complete(self.get_audio(self.future))
+                # def handle_future(future):
+                #     print("I HANDLING")
+                #     response = future.result()
+                #     self.volume = response
+                #     print("VOL", response)
+                #     self.task = None
+
+                # self.future.add_done_callback(handle_future)
                 self.task = asyncio.create_task(self.get_audio(self.future))
+
 
         except Exception as err:
             print(err)
         if self.future.done():
             self.volume = self.future.result()
-            self.loop.close()
             self.task = None
+        else:
+            return
 
     def render(self):
-        asyncio.run(self.get_audio_sync())
         self.phase += 0.2
+        print(self.volume)
 
         spawnChance = 300
         useCol = rippleColors
