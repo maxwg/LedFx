@@ -45,9 +45,26 @@ nodeConnections = [
 ]
 
 
+rippleColors = [
+    [150, 120, 80],
+    [150, 90, 50],
+    [150, 120, 20],
+    [150, 100, 30],
+    [150, 80, 30],
+    [150, 90, 0],
+]
+
+intenseRippleColors = [
+    [255, 0, 0],
+    [255, 40, 20],
+    [255, 30, 0]
+]
+
 class ChromanceRippleEffect(AudioReactiveEffect):
     NAME = "Chromance-Erdtree"
     CATEGORY = "2D"
+    phase = 0
+    aud = 0
 
     CONFIG_SCHEMA = vol.Schema(
         {
@@ -71,7 +88,7 @@ class ChromanceRippleEffect(AudioReactiveEffect):
 
     def on_activate(self, pixel_count):
         self.r = np.zeros((40, 14, 3))
-        self.ripples = [Ripple(i) for i in range(0, 40)]
+        self.ripples = [Ripple(i) for i in range(0, 20)]
 
     def lightSegment(self, pixels, segment, color):
         leds = ledAssignments[segment]
@@ -81,17 +98,36 @@ class ChromanceRippleEffect(AudioReactiveEffect):
             pixels[i][0] = max(color[0], pixels[i][0])
             pixels[i][1] = max(color[1], pixels[i][1])
             pixels[i][2] = max(color[2], pixels[i][2])
+
+    def audio_data_updated(self, data):
+        # Grab the filtered melbank
+        self.aud = np.sum(self.melbank(filtered=True, size=100))
+
     def render(self):
+        self.phase += 0.2
+
+        spawnChance = 300
+        useCol = rippleColors
+        print(self.aud)
+        if self.aud > 5:
+            spawnChance = 100
+        if self.aud > 15:
+            spawnChance = 2
+            useCol = intenseRippleColors
+
         for i in range(0, len(self.ripples)):
             ripple = self.ripples[i]
             if ripple.state == RippleState.dead:
-                if (randint(0, 30) == 5):
-                    ripple.start(20 if randint(0,1) == 1 else 15, 0, (randint(190,255), randint(140,220), randint(0,40)), uniform(0.6, 3), uniform(1000, 6000), 1, nodeConnections, segmentConnections)
+                if randint(0, spawnChance) == 0:
+                    color = useCol[randint(0, len(useCol) - 1)]
+                    print(color)
+                    ripple.start(20 if randint(0,1) == 1 else 15, 0, color, uniform(0.6, 2), uniform(1000, 6000), 1,
+                                 nodeConnections, segmentConnections)
             else:
                 ripple.advance(self.r)
         for i in range (0, 40):
             for j in range (0, 14):
-                self.r[i][j] = self.r[i][j] * 0.9
+                self.r[i][j] = self.r[i][j] * 0.94
                 if np.average(self.r[i][j]) < 10:
                     self.r[i][j] = [0,0,0] # too dark to show well
 
@@ -100,11 +136,16 @@ class ChromanceRippleEffect(AudioReactiveEffect):
             for fromBottom in range(0, 14):
                 led = round(fmap(fromBottom, 0, 13, ledAssignments[segment][1], ledAssignments[segment][0]))
                 pixels[led][0] = self.r[segment][fromBottom][0]
-                pixels[led][1] = self.r[segment][fromBottom][1]
-                pixels[led][2] = self.r[segment][fromBottom][2]
+                pixels[led][1] = min(self.r[segment][fromBottom][1], self.r[segment][fromBottom][0]* 0.9)
+                pixels[led][2] = min(self.r[segment][fromBottom][2], self.r[segment][fromBottom][0]* 0.75)
 
-        baseCol = (40, 25, 0)
+        glowVal = 10
+        glowAdd = self.phase % (glowVal * 2)
+        if glowAdd > glowVal:
+            glowAdd = glowVal - (glowAdd % glowVal)
+        baseCol = (20 + glowAdd, 15, 0)
         self.lightSegment(pixels, 31, baseCol)
+        self.lightSegment(pixels, 15, baseCol)
         self.lightSegment(pixels, 26, baseCol)
         self.lightSegment(pixels, 25, baseCol)
         self.lightSegment(pixels, 13, baseCol)
@@ -119,8 +160,6 @@ class ChromanceRippleEffect(AudioReactiveEffect):
         self.lightSegment(pixels, 21, baseCol)
         self.lightSegment(pixels, 14, baseCol)
         self.lightSegment(pixels, 16, baseCol)
-        self.lightSegment(pixels, 8, baseCol)
-        self.lightSegment(pixels, 9, baseCol)
         self.lightSegment(pixels, 1, baseCol)
         self.lightSegment(pixels, 4, baseCol)
 
