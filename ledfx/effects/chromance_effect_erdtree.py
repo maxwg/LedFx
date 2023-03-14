@@ -159,16 +159,15 @@ class ChromanceRippleEffect(TemporalEffect):
 
     def render(self):
         self.phase += 0.2
-        print(self.volume)
 
-        spawnChance = 300
+        spawnChance = 500
         useCol = rippleColors
-        if self.volume > 5:
+        if self.volume > 10:
             spawnChance = 100
-        if self.volume > 20:
+        if self.volume > 30:
             spawnChance = 10
             useCol = intenseRippleColors
-        if self.volume > 50:
+        if self.volume > 80:
             spawnChance = 1
             useCol = intenseRippleColors
 
