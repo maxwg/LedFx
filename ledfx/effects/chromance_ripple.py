@@ -61,15 +61,20 @@ class Ripple:
         self.pressure = 0
         self.state = RippleState.withinNode
 
+        #        If within a node: 0 is node, 1 is direction
+        #        If traveling, 0 is segment, 1 is LED position from bottom
         self.position = [node, direction]
         self.nodeConnections = nodeConnections
         self.segmentConnections = segmentConnections
 
         self.justStarted = True
 
-        print(f"Ripple {self.ripple_id} starting at node {self.position[0]} direction {self.position[1]}")
+        # print(f"Ripple {self.ripple_id} starting at node {self.position[0]} direction {self.position[1]}")
 
     def advance(self, ledColors):
+        if self.position[0] == -1:
+            print("ERRROR")
+            self.state = RippleState.dead
         age = (time() - self.birthday) * 1000
         if self.state == RippleState.dead:
             return

@@ -20,9 +20,9 @@ nodeConnections = [
     [-1, -1, -1, -1, 0, -1],
     [-1, -1, 3, -1, 2, -1],
     [-1, -1, 5, -1, -1, -1],
-    [-1, 0, 6, 12, -1, -1],
-    [-1, 2, 8, 14, 7, 1],
-    [-1, 4, 10, 16, 9, 3],
+    [-1, 0, -1, 12, -1, -1],
+    [-1, 2, -1, 14, 7, 1],
+    [-1, 4, 10, 16, -1, 3],
     [-1, -1, -1, 18, 11, 5],
     [-1, 7, -1, 13, -1, 6],
     [-1, 9, -1, 15, -1, 8],
@@ -32,12 +32,12 @@ nodeConnections = [
     [16, -1, 23, -1, 22, -1],
     [18, -1, -1, -1, 24, -1],
     [13, 20, 25, 29, -1, -1],
-    [15, 22, -1, -1, -1, 21],
+    [15, 22, 27, 31, 26, 21],
     [17, 24, -1, 33, 28, 23],
     [-1, 26, -1, 30, -1, 25],
     [-1, 28, -1, 32, -1, 27],
     [29, -1, 34, -1, -1, -1],
-    [31, -1, -1, -1, -1, -1],
+    [31, -1, 36, -1, 35, -1],
     [33, -1, -1, -1, 37, -1],
     [30, 35, 38, -1, -1, 34],
     [32, 37, -1, -1, 39, 36],
@@ -73,20 +73,28 @@ class ChromanceRippleEffect(AudioReactiveEffect):
         self.r = np.zeros((40, 14, 3))
         self.ripples = [Ripple(i) for i in range(0, 40)]
 
-
+    def lightSegment(self, pixels, segment, color):
+        leds = ledAssignments[segment]
+        m = min(leds[0], leds[1])
+        M = max(leds[0], leds[1])
+        for i in range(m, M + 1):
+            pixels[i][0] = max(color[0], pixels[i][0])
+            pixels[i][1] = max(color[1], pixels[i][1])
+            pixels[i][2] = max(color[2], pixels[i][2])
     def render(self):
         for i in range(0, len(self.ripples)):
-            r = self.ripples[i]
-            if r.state == RippleState.dead:
+            ripple = self.ripples[i]
+            if ripple.state == RippleState.dead:
                 if (randint(0, 30) == 5):
-                    r.start(15 if randint(0,1) == 0 else 20, 0, (randint(190,255), randint(160,220), randint(0,50)), uniform(0.6, 3), uniform(2000, 8000), randint(2,4), nodeConnections, segmentConnections)
+                    ripple.start(20 if randint(0,1) == 1 else 15, 0, (randint(190,255), randint(140,220), randint(0,40)), uniform(0.6, 3), uniform(1000, 6000), 1, nodeConnections, segmentConnections)
             else:
-                r.advance(self.r)
+                ripple.advance(self.r)
         for i in range (0, 40):
             for j in range (0, 14):
                 self.r[i][j] = self.r[i][j] * 0.9
                 if np.average(self.r[i][j]) < 10:
                     self.r[i][j] = [0,0,0] # too dark to show well
+
         pixels = np.zeros((560, 3))
         for segment in range(0, 40):
             for fromBottom in range(0, 14):
@@ -94,4 +102,26 @@ class ChromanceRippleEffect(AudioReactiveEffect):
                 pixels[led][0] = self.r[segment][fromBottom][0]
                 pixels[led][1] = self.r[segment][fromBottom][1]
                 pixels[led][2] = self.r[segment][fromBottom][2]
+
+        baseCol = (40, 25, 0)
+        self.lightSegment(pixels, 31, baseCol)
+        self.lightSegment(pixels, 26, baseCol)
+        self.lightSegment(pixels, 25, baseCol)
+        self.lightSegment(pixels, 13, baseCol)
+        self.lightSegment(pixels, 6, baseCol)
+        self.lightSegment(pixels, 27, baseCol)
+        self.lightSegment(pixels, 28, baseCol)
+        self.lightSegment(pixels, 19, baseCol)
+        self.lightSegment(pixels, 24, baseCol)
+        self.lightSegment(pixels, 17, baseCol)
+        self.lightSegment(pixels, 11, baseCol)
+        self.lightSegment(pixels, 22, baseCol)
+        self.lightSegment(pixels, 21, baseCol)
+        self.lightSegment(pixels, 14, baseCol)
+        self.lightSegment(pixels, 16, baseCol)
+        self.lightSegment(pixels, 8, baseCol)
+        self.lightSegment(pixels, 9, baseCol)
+        self.lightSegment(pixels, 1, baseCol)
+        self.lightSegment(pixels, 4, baseCol)
+
         self.pixels = pixels
