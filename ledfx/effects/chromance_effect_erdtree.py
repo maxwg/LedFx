@@ -5,7 +5,7 @@ from time import time
 from enum import Enum
 from random import randint
 from ledfx.effects.chromance_ripple import Ripple, RippleState, fmap
-from ledfx.effects.chromance_config import segmentConnections, ledAssignments
+from ledfx.effects.chromance_config import segmentConnections, ledAssignments, led_order
 from ledfx.effects.temporal import TemporalEffect
 from random import uniform
 import requests
@@ -163,6 +163,7 @@ class ChromanceRippleEffect(TemporalEffect):
             return
 
     def render(self):
+        a = time()
         self.phase += 0.1
 
         spawnChance = 800
@@ -188,6 +189,9 @@ class ChromanceRippleEffect(TemporalEffect):
             else:
                 ripple.advance(self.r)
 
+        b = time()
+        # print("AB", (b - a)*1000)
+
         self.r *= 0.94
         self.r[np.average(self.r, axis=2) < 10] = [0, 0, 0]
         # for i in range (0, 40):
@@ -197,13 +201,18 @@ class ChromanceRippleEffect(TemporalEffect):
         #             self.r[i][j] = [0,0,0] # too dark to show well
 
         pixels = np.zeros((560, 3))
+        i = 0
         for segment in range(0, 40):
             for fromBottom in range(0, 14):
-                led = round(fmap(fromBottom, 0, 13, ledAssignments[segment][1], ledAssignments[segment][0]))
-                pixels[led] = self.r[segment][fromBottom]
+                # led = round(fmap(fromBottom, 0, 13, ledAssignments[segment][1], ledAssignments[segment][0]))
+                pixels[led_order[i]] = self.r[segment][fromBottom]
+                i += 1
                 # pixels[led][0] = self.r[segment][fromBottom][0]
                 # pixels[led][1] = self.r[segment][fromBottom][1]
                 # pixels[led][2] = self.r[segment][fromBottom][2]
+
+        c = time()
+        # print("BC", (c - b)*1000)
 
         glowVal = 10
         glowAdd = self.phase % (glowVal * 2)
@@ -230,6 +239,9 @@ class ChromanceRippleEffect(TemporalEffect):
         self.lightSegment(pixels, 4, baseCol)
         self.lightSegment(pixels, 35, baseCol)
         self.lightSegment(pixels, 36, baseCol)
+
+        d = time()
+        # print("CD", (d - c)*1000)
 
         # smoothly transition volume
         self.volumeSmooth = self.volumeSmooth * 0.8 + self.volume * 0.2
