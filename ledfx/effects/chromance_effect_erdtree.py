@@ -142,7 +142,7 @@ class ChromanceRippleEffect(TemporalEffect):
                 return
             # Calculate volume using audioop
             volume = audioop.rms(chunk, 2) - 4659
-            print(f"Volume: {volume}")
+            # print(f"Volume: {volume}")
             future.set_result(volume)
             return volume
         except:
@@ -264,7 +264,7 @@ class ChromanceRippleEffect(TemporalEffect):
         # smoothly transition volume
 
         multiplier = (math.log10(moving_window_sum(self.volume, self.vIdx, 0.8)+1)+2)/2
-        print(multiplier)
+        # print(multiplier)
         self.pixels = pixels * multiplier
         self.vIdx = (self.vIdx + 1) % len(self.volume)
         self.wroteVol = False
