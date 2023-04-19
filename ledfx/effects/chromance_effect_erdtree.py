@@ -177,19 +177,19 @@ class ChromanceRippleEffect(TemporalEffect):
         a = time()
         self.phase += 0.1
 
-        spawnChance = 800
+        spawnChance = 200
         useCol = rippleColors
         vol = self.volume[self.vIdx]
         if self.wroteVol:
             if vol > 10:
-                spawnChance = 200
+                spawnChance = 60
             if vol > 20:
-                spawnChance = 80
+                spawnChance = 25
             if vol > 60:
-                spawnChance = 20
-                useCol = intenseRippleColors
-            if vol > 140:
                 spawnChance = 5
+                useCol = intenseRippleColors
+            if vol > 150:
+                spawnChance = 1
                 useCol = intenseRippleColors
         else:
             self.volume[self.vIdx] = 0
