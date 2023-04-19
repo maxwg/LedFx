@@ -72,12 +72,12 @@ class ChromanceRippleEffect(TemporalEffect):
     NAME = "Chromance-Erdtree"
     CATEGORY = "2D"
     phase = 0
-    volume = 0
+    volume = np.zeros(100)
+    vIdx = 0
     task = None
     future = None
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop) # Here
-    volumeSmooth = 0
 
     CONFIG_SCHEMA = vol.Schema(
         {
@@ -126,13 +126,13 @@ class ChromanceRippleEffect(TemporalEffect):
         session = requests.Session()
         response = session.get(url, stream=True)
         try:
-            # Read a 50ms audio chunk from the stream
-            chunk = response.raw.read(int(16000 / 20))
+            # Read a 25ms audio chunk from the stream
+            chunk = response.raw.read(int(16000 / 40))
             if not chunk:
                 return
             # Calculate volume using audioop
             volume = audioop.rms(chunk, 2) - 3294
-            # print(f"Volume: {volume}")
+            print(f"Volume: {volume}")
             future.set_result(volume)
             return volume
         except:
@@ -157,7 +157,7 @@ class ChromanceRippleEffect(TemporalEffect):
         except Exception as err:
             print(err)
         if self.future.done():
-            self.volume = self.future.result()
+            self.volume[self.vIdx] = self.future.result()
             self.task = None
         else:
             return
@@ -168,14 +168,15 @@ class ChromanceRippleEffect(TemporalEffect):
 
         spawnChance = 800
         useCol = rippleColors
-        if self.volume > 10:
+        vol = self.volume[self.vIdx]
+        if vol > 10:
             spawnChance = 200
-        if self.volume > 20:
+        if vol > 20:
             spawnChance = 80
-        if self.volume > 40:
+        if vol > 40:
             spawnChance = 20
             useCol = intenseRippleColors
-        if self.volume > 100:
+        if vol > 100:
             spawnChance = 5
             useCol = intenseRippleColors
 
@@ -244,7 +245,8 @@ class ChromanceRippleEffect(TemporalEffect):
         # print("CD", (d - c)*1000)
 
         # smoothly transition volume
-        self.volumeSmooth = self.volumeSmooth * 0.8 + self.volume * 0.2
-        multiplier = (math.log10(self.volumeSmooth+1)+2)/2
-
+        multiplier = (math.log10(np.sum(self.volume)+1)+2)/2
+        print(multiplier)
         self.pixels = pixels * multiplier
+        self.vIdx = (self.vIdx + 1) % len(self.volume)
+
