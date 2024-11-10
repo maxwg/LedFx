@@ -1,3 +1,4 @@
+import timeit
 from functools import lru_cache
 
 import numpy as np
@@ -18,10 +19,15 @@ def interpolate_pixels(pixels, new_length):
     x_new = _normalized_linspace(new_length)
     new_pixels = np.zeros((len(x_new), pixels.shape[1]))
 
-    new_pixels[:, 0] = np.interp(x_new, x_old, pixels[:, 0])
-    new_pixels[:, 1] = np.interp(x_new, x_old, pixels[:, 1])
-    new_pixels[:, 2] = np.interp(x_new, x_old, pixels[:, 2])
+    # Interpolate the R,G,B portions of the pixel array
+    # Lots of attempts at vectorisation/performance improvements here
+    # This appears to be optimal from a readability/performance point of view
+    # TODO: If we ever move to RGBW pixel arrays, uncomment the last line to operate on the W portion
 
+    new_pixels[:, 0] = np.interp(x_new, x_old, pixels[:, 0])  # R
+    new_pixels[:, 1] = np.interp(x_new, x_old, pixels[:, 1])  # G
+    new_pixels[:, 2] = np.interp(x_new, x_old, pixels[:, 2])  # B
+    # new_pixels[:, 3] = np.interp(x_new, x_old, pixels[:, 3]) # W
     return new_pixels
 
 
@@ -166,3 +172,87 @@ class ExpFilter:
         self.value = alpha * value + (1.0 - alpha) * self.value
 
         return self.value
+
+
+def interpolate_colors(c1, c2, elements):
+    """
+    Create np color array of equally interpolated values between c1 and c2
+
+    Paramenters:
+        c1 a color defined by 3 floats in np array
+        c2 a color defined by 3 floats in np array
+        elements int value for number of elements in the returned np array
+
+    Returns:
+        np.ndarry: np array of equally interpolated color values between
+        c1 and c2
+    """
+    t = np.linspace(0, 1, elements)[:, np.newaxis]
+    # Interpolate the colors using broadcasting
+    return c1 * (1 - t) + c2 * t
+
+
+def roll_pixel_array(array, fraction):
+    """
+    roll a color np array by a fraction of its length
+
+    Paramters:
+        array np array of colors
+        fraction float value between -1 and 1
+
+    Returns:
+        np.ndarry: np array of colors rolled by fraction of its length
+    """
+
+    length = array.shape[0]
+    shift_amount = int(length * fraction)
+    rolled_array = np.roll(array, shift_amount, axis=0)
+    return rolled_array
+
+
+def time_factor(window):
+    """
+    Returns a value between 0 and 1 based on time modulated by window
+    So for example if you want a value that runs from 0 to 1 every 3 seconds
+    you would call time_factor(3)
+
+    Paramters:
+        window float value of the window in seconds
+
+    Returns:
+        float: value between 0 and 1
+    """
+
+    return (timeit.default_timer() % window) / window
+
+
+def make_pattern(color, length, step):
+    """
+    builds a pattern of quater segments
+    full color, fade to dim, dim color, fade to full
+    rolls the pattern based on time modulated
+    So we don't care when we started or what the update rate is
+
+    Paramters:
+        color np array of 3 floats
+        length int value of the length of the pattern required
+        step value which implies direction of roll
+
+    Returns:
+        np.ndarry: np array of colors rolled by fraction of its length
+    """
+
+    factor = time_factor(3)
+    color2 = color * 0.2
+    quart = int(length / 4)
+    extra = length - quart * 4
+    pattern = np.vstack(
+        (
+            interpolate_colors(color, color, quart),
+            interpolate_colors(color, color2, quart),
+            interpolate_colors(color2, color2, quart),
+            interpolate_colors(color2, color, quart + extra),
+        )
+    )
+    pattern = roll_pixel_array(pattern, factor * step)
+    return pattern

@@ -86,6 +86,8 @@ class Water(AudioReactiveEffect, HSVEffect):
         # Just bail out with uselessly-small pixel counts.
         if self.pixel_count < 5:
             return
+        if self.drops_queue is None:
+            return
 
         intensities = np.fromiter(
             (i.max() ** 2 for i in self.melbank_thirds()), float
@@ -162,12 +164,12 @@ class Water(AudioReactiveEffect, HSVEffect):
         self.hsv_array[:, 1] = self._s
 
     def _create_drop(self, position, height):
-        self._buffer[0][position] = self._buffer[0][
-            position - 1
-        ] = self._buffer[0][position + 1] = height
-        self._buffer[1][position] = self._buffer[1][
-            position - 1
-        ] = self._buffer[1][position + 1] = height
+        self._buffer[0][position] = self._buffer[0][position - 1] = (
+            self._buffer[0][position + 1]
+        ) = height
+        self._buffer[1][position] = self._buffer[1][position - 1] = (
+            self._buffer[1][position + 1]
+        ) = height
 
     def _do_ripple(self, buf, buf_idx, damp_factor):
         """Apply ripple algorithm to the given buffer

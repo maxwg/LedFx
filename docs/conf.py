@@ -19,18 +19,13 @@ import sphinx_rtd_theme
 sys.path.insert(0, os.path.abspath(".."))
 
 import ledfx.consts as const
-from ledfx.consts import (
-    DEV_VERSION,
-    POST_VERSION,
-    PROJECT_NAME,
-    PROJECT_VERSION,
-)
+from ledfx.consts import PROJECT_AUTHOR, PROJECT_NAME, PROJECT_VERSION
 
 # -- Project information -----------------------------------------------------
 
 PROJECT_PACKAGE_NAME = PROJECT_NAME
-PROJECT_AUTHOR = const.__author__
-PROJECT_COPYRIGHT = f" 2018-2021, {PROJECT_AUTHOR}"
+PROJECT_AUTHOR = PROJECT_AUTHOR
+PROJECT_COPYRIGHT = f" 2018-2023, {PROJECT_AUTHOR}"
 PROJECT_SHORT_DESCRIPTION = "LedFx is an open-source effect controller"
 PROJECT_LONG_DESCRIPTION = (
     "LedFx is an open-source effect controller "
@@ -39,10 +34,8 @@ PROJECT_LONG_DESCRIPTION = (
 )
 PROJECT_GITHUB_USERNAME = "LedFx"
 PROJECT_GITHUB_REPOSITORY = "LedFx"
-PROJECT_GITHUB_BRANCH = "dev"
-PROJECT_GITHUB_PATH = "{}/{}".format(
-    PROJECT_GITHUB_USERNAME, PROJECT_GITHUB_REPOSITORY
-)
+PROJECT_GITHUB_BRANCH = "main"
+PROJECT_GITHUB_PATH = f"{PROJECT_GITHUB_USERNAME}/{PROJECT_GITHUB_REPOSITORY}"
 PROJECT_GITHUB_URL = f"https://github.com/{PROJECT_GITHUB_PATH}"
 
 project = f"{PROJECT_NAME}"
@@ -50,11 +43,6 @@ author = f"{PROJECT_AUTHOR}"
 copyright = f"{PROJECT_COPYRIGHT}" + " & contributors"
 release = PROJECT_VERSION
 version = PROJECT_VERSION
-
-if DEV_VERSION:
-    version = DEV_VERSION
-elif POST_VERSION:
-    version = POST_VERSION
 
 # -- General configuration ---------------------------------------------------
 
@@ -70,6 +58,7 @@ extensions = [
     "sphinx.ext.githubpages",
     "sphinxcontrib.httpdomain",
     "sphinx_rtd_theme",
+    "sphinx_toolbox.collapse",
 ]
 
 # The suffix(es) of source filenames.
@@ -97,9 +86,11 @@ pygments_style = "sphinx"
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 gettext_compact = False
+
+linkcheck_timeout = 2
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -129,9 +120,9 @@ html_context = {
     "conf_py_path": "docs",
     "source_suffix": ".rst",
 }
-
+# TODO: Use os.path.join for these instead of hardcoding
 html_logo = "_static/small_white_alpha.png"
-html_favicon = "../icons/favicon.ico"
+html_favicon = "../ledfx_assets/favicon.ico"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

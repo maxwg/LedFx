@@ -1,16 +1,14 @@
 =====================================================
-   Welcome to LedFx ✨ *-Making music come alive!*
+   Welcome to LedFx ✨ *Making music come alive!*
 =====================================================
 |Build Status| |License| |Build Status Docs| |Discord|
 |Contributor Covenant|
 
-.. image:: https://raw.githubusercontent.com/LedFx/LedFx/b8e68beaa215d4308c74d0c7d657556ac894b707/icons/banner.png
-
-LedFx website: https://ledfx.app/
+.. image:: https://raw.githubusercontent.com/LedFx/LedFx/main/ledfx_assets/banner.png
 
 What is LedFx?
 ----------------
-
+LedFx makes your LEDs dance to audio!
 What LedFx offers is the ability to take audio input, and instantaneously processes the audio into realtime light show to multiple LED strips/matrix.
 No need to spend hours on end to program one song to program your LEDs, as LedFx will do this all for you!
 
@@ -21,21 +19,30 @@ Demos
 
 Visit `our website`_ to see LedFx in action!
 
-You can also join our `Discord`_ where community members show off their projects.
+You can also join our `Discord`_ where community members show off their projects. Check out the #projects or #showcase channels.
 
 📑 Quick start guide and documentation📖
 ------------------------------------------
-Windows users can use the installer from the LedFx website: https://ledfx.app/download/
 
-Mac and Linux are also supported, though currently do not have installers.
-For detailed installation instructions, see the `installation documentation`_.
+Head over to `releases`_ to get the latest releases for Windows and Mac. For linux, use pip.
+
+**Bleeding edge (Experimental)**
+
+If you want the absolute bleeding edge and are not afraid of using the terminal, take a look at the detailed installation instructions here: `Installation documentation`_.
+
+**Documentation**
+
+Documentation for the latest release can be found here: `Stable documentation`_
+
+Documentation built against this repository can be found here: `Latest documentation`_
+
 
 😍 Show me how to make one!
 -----------------------------
 
 The below image describes a basic setup - LedFx running on PC, communicating with a WLED Device controlling an LED strip.
 
-.. image:: https://i.imgur.com/vzyHNwG.png
+.. image:: https://raw.githubusercontent.com/LedFx/LedFx/main/docs/_static/topology.png
 
 .. list-table::
    :widths: 75 75
@@ -56,28 +63,27 @@ The below image describes a basic setup - LedFx running on PC, communicating wit
 
 #. **Build your networked LED Strip.**
       - For most, this is the difficult step. Don't worry! There's guides here and online, and plenty of people able to help on WLED and LedFx Discord.
-      - Follow the WLED guide to connect the LED strip and ESP together: https://github.com/Aircoookie/WLED/wiki.
-      - Flash WLED to the ESP device: https://github.com/Aircoookie/WLED/wiki/Install-WLED-binary
+      - Follow the `WLED guide to connect the LED strip and ESP together <https://kno.wled.ge/basics/getting-started/>`_.
+      - `Flash WLED to the ESP device <https://kno.wled.ge/basics/install-binary/>`_.
       - Ensure all WLED devices are powered on, and connected to your Wi-Fi.
       - Test you can access the WLED web interface from your PC. If so, then you're good to go!
 
 #. **Install LedFx.**
-      - After you have WLED installed on your ESP device, download: `LedFx.exe`_ and install LedFx.
-      - For Mac and Linux, see the `installation documentation`_ or `LedFx Guide`_.
+      - For PC and Mac, see our `releases`_, or see the `installation documentation`_ for more information.
+      - For linux, you can use pip to install ledfx - however you may need to install some dependencies first. See the `installation documentation`_ for more information.
 
 #. **Direct computer audio output to LedFx.**
-      - Follow guide, `How to: Enable Stereo Mix in Windows 10`_.
-      - Alternatively use `Voicemeeter`_. `Voicemeeter tutorial`_.
+      - By default on Windows LedFx will attempt to listen to your system audio.
       - More information for `Linux and macOS users here <https://ledfx.readthedocs.io/en/latest/directing_audio.html>`_.
       - Play some music in the background.
 
 #. **Start LedFx.**
       - Your WLED devices should appear in LedFx, automagically configured and ready to go! 🎆🔥
-      - If not, on the left hand side, click on Device Management -> ``Find WLED devices`` button, or ``Add Device`` to add them manually.
+      - If not, on the bottom click Home,  -> ``Scan for WLED devices`` button, or click on the big plus sign and ``Add Device`` to add them manually.
       - If they're still not showing up, make sure they're powered on and properly connected to your WiFi.
 
 #. **Start using effects!**
-      - Click on the device, select an effect eg ``scroll(Reactive)``, and press ``Set effect`` button.
+      - Click on the device, select an effect eg ``scroll`` under Classic
       - Your lights should now be reacting realtime to your music! Enjoy the show 🌈
 
 
@@ -105,16 +111,18 @@ License
 
 
 .. _`GPL-3`: https://choosealicense.com/licenses/gpl-3.0/
-.. _`LedFx.exe`: https://ledfx.app/download/
+.. _`LedFx.exe`: https://github.com/LedFx/LedFx/releases/latest
 .. _`LedFx Guide`: https://ledfx.readthedocs.io/en/latest/index.html
-.. _`WLED`: https://github.com/Aircoookie/WLED/wiki
-.. _`installation documentation`: https://ledfx.readthedocs.io/en/latest/installing.html
+.. _`WLED`: https://kno.wled.ge
+.. _`releases`: https://github.com/LedFx/LedFx/releases/latest
+.. _`Installation documentation`: https://ledfx.readthedocs.io/en/latest/installing.html
+.. _`Stable documentation`: https://ledfx.readthedocs.io/en/stable/
+.. _`Latest documentation`: https://ledfx.readthedocs.io/en/latest/
 .. _`our website`: https://ledfx.app
 .. _`Discord`: https://discord.gg/xyyHEquZKQ
 .. _`Contributors-&-About`: https://ledfx.app/about/
 .. _`How to: Enable Stereo Mix in Windows 10`: https://thegeekpage.com/stereo-mix/
-.. _`Voicemeeter`: https://vb-audio.com/Voicemeeter/index.htm
-.. _`Voicemeeter tutorial`: https://youtu.be/ZXKDzYXS60o?start=27&end=163
+
 
 .. |Build Status| image:: https://github.com/LedFx/LedFx/actions/workflows/ci-build.yml/badge.svg
    :target: https://github.com/LedFx/LedFx/actions/workflows/ci-build.yml

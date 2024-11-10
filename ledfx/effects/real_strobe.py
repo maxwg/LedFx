@@ -13,6 +13,7 @@ from ledfx.utils import empty_queue
 class Strobe(AudioReactiveEffect, GradientEffect):
     NAME = "Strobe"
     CATEGORY = "Classic"
+    HIDDEN_KEYS = ["gradient_roll"]
 
     CONFIG_SCHEMA = vol.Schema(
         {
@@ -46,6 +47,11 @@ class Strobe(AudioReactiveEffect, GradientEffect):
                 description="Percussive strobe decay rate. Higher -> decays faster.",
                 default=0.5,
             ): vol.All(vol.Coerce(float), vol.Range(min=0, max=1)),
+            vol.Optional(
+                "color_shift_delay",
+                description="color shift delay for percussive strobes. Lower -> more shifts",
+                default=1,
+            ): vol.All(vol.Coerce(float), vol.Range(min=0, max=1)),
         }
     )
 
@@ -67,7 +73,7 @@ class Strobe(AudioReactiveEffect, GradientEffect):
         )
         self.last_color_shift_time = 0
         self.strobe_width = self._config["strobe_width"]
-        self.color_shift_delay_in_seconds = 1
+        self.color_shift_delay_in_seconds = self._config["color_shift_delay"]
         self.color_idx = 0
 
         self.last_strobe_time = 0
@@ -96,9 +102,9 @@ class Strobe(AudioReactiveEffect, GradientEffect):
                 if length_diff == 0
                 else np.random.randint(self.pixel_count - strobe_width)
             )
-            self.strobe_overlay[
-                position : position + strobe_width
-            ] = self.strobe_color
+            self.strobe_overlay[position : position + strobe_width] = (
+                self.strobe_color
+            )
 
         pixels += self.strobe_overlay
 
