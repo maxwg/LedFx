@@ -1,28 +1,19 @@
 import numpy as np
 import voluptuous as vol
 
-from time import time
+from time import time, sleep
 from enum import Enum
 from random import randint
 from ledfx.effects.chromance_ripple import Ripple, RippleState, fmap
 from ledfx.effects.chromance_config import segmentConnections, ledAssignments, led_order
+from ledfx.effects.audio import AudioReactiveEffect
 from ledfx.effects.temporal import TemporalEffect
 from random import uniform
 import requests
 import audioop
 import asyncio
 import math
-
-# IP Webcam server URL
-url = 'http://192.168.50.142:8080/audio.wav'
-
-
-
-
-
-
-
-
+import datetime
 
 nodeConnections = [
     [-1, -1, -1, -1, 0, -1],
@@ -70,47 +61,30 @@ intenseRippleColors = [
 
 segsToLight = [70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 476, 477, 478, 479, 480, 481, 482, 483, 484, 485, 486, 487, 488, 489, 308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 462, 463, 464, 465, 466, 467, 468, 469, 470, 471, 472, 473, 474, 475, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362, 363, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 392, 393, 394, 395, 396, 397, 398, 399, 400, 401, 402, 403, 404, 405, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378, 379, 380, 381, 382, 383, 384, 385, 386, 387, 388, 389, 390, 391, 294, 295, 296, 297, 298, 299, 300, 301, 302, 303, 304, 305, 306, 307, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 448, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 434, 435, 436, 437, 438, 439, 440, 441, 442, 443, 444, 445, 446, 447, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335]
 
-class ChromanceRippleEffect(TemporalEffect):
+
+class ChromanceRippleEffect(AudioReactiveEffect, TemporalEffect):
     NAME = "Chromance-Erdtree"
     CATEGORY = "2D"
     phase = 0
-    volume = np.zeros(60)
+    volumeHistory = np.zeros(60)
     vIdx = 0
-    wroteVol = False
+    # wroteVol = False
     task = None
     future = None
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop) # Here
+    lastTime = time()
 
-    CONFIG_SCHEMA = vol.Schema(
-        {
-            vol.Optional(
-                "align",
-                description="Alignment of bands",
-                default="left",
-            ): vol.In(list(["left", "right", "invert", "center"])),
-            vol.Optional(
-                "gradient_repeat",
-                description="Repeat the gradient into segments",
-                default=6,
-            ): vol.All(vol.Coerce(int), vol.Range(min=1, max=16)),
-            vol.Optional(
-                "mirror",
-                description="Mirror the effect",
-                default=False,
-            ): bool,
-        }
-    )
+    CONFIG_SCHEMA = vol.Schema({})
 
     def on_activate(self, pixel_count):
         self.r = np.zeros((40, 14, 3))
-        self.ripples = [Ripple(i) for i in range(0, 20)]
-        asyncio.create_task(self.run_forever())
-
-    async def run_forever(self):
-        while True:
-            await self.get_audio_sync()
-            await asyncio.sleep(0.02)
+        self.ripples = [Ripple(i) for i in range(0, 40)]
+        # asyncio.create_task(self.run_forever())
+    #
+    # async def run_forever(self):
+    #     while True:
+    #         await asyncio.sleep(0.02)
 
     def lightSegment(self, pixels, segment, color ,arr):
         leds = ledAssignments[segment]
@@ -131,68 +105,53 @@ class ChromanceRippleEffect(TemporalEffect):
             pixels[i][1] = max(color[1], pixels[i][1])
             pixels[i][2] = max(color[2], pixels[i][2])
 
-    async def get_audio(self, future):
-        # Open a streaming session
-        session = requests.Session()
-        response = session.get(url, stream=True)
-        try:
-            # Read a 25ms audio chunk from the stream
-            chunk = response.raw.read(int(16000 / 40))
-            if not chunk:
-                return
-            # Calculate volume using audioop
-            volume = audioop.rms(chunk, 2) - 4659
-            # print(f"Volume: {volume}")
-            future.set_result(volume)
-            return volume
-        except:
-            return
 
-    async def get_audio_sync(self):
-        try:
-            if self.task is None:
-                self.future = self.loop.create_future()
-                # self.loop.run_until_complete(self.get_audio(self.future))
-                # def handle_future(future):
-                #     print("I HANDLING")
-                #     response = future.result()
-                #     self.volume = response
-                #     print("VOL", response)
-                #     self.task = None
+    def audio_data_updated(self, data):
+        volume = np.sum(self.melbank(filtered=True))*5
+        self.vIdx = (self.vIdx + 1) % len(self.volumeHistory)
+        self.volumeHistory[self.vIdx] = volume
+    # def get_audio(self):
+    #     try:
+    #
+    #
+    #         # Calculate volume using RMS
+    #         volume = 0
+    #         print(volume)
+    #         self.volume[self.vIdx] = volume
+    #         self.vIdx = (self.vIdx + 1) % len(self.volume)
+    #     except Exception as e:
+    #         # Handle any errors
+    #         print("Error capturing audio:", e)
 
-                # self.future.add_done_callback(handle_future)
-                self.task = asyncio.create_task(self.get_audio(self.future))
-
-
-        except Exception as err:
-            print(err)
-        if self.future.done():
-            self.wroteVol = True
-            self.volume[self.vIdx] = self.future.result()
-            self.task = None
-        else:
-            return
 
     def render(self):
+        # print(time() - self.lastTime)
+        # self.lastTime = time()
+        current_time = datetime.datetime.now().strftime("%H%M")
+        current_time_numeric = int(current_time)
+
+        # Check if the current time is between 10:00 PM (2200) and 9:30 AM (0930)
+        if 2200 <= current_time_numeric or current_time_numeric <= 930:
+            self.pixels = np.zeros((560, 3))
+            # sleep(100)
+            return
+
         a = time()
         self.phase += 0.1
 
         spawnChance = 200
         useCol = rippleColors
-        vol = self.volume[self.vIdx]
-        if self.wroteVol:
-            if vol > 10:
-                spawnChance = 60
-            if vol > 20:
-                spawnChance = 25
-            if vol > 60:
-                spawnChance = 5
-                useCol = intenseRippleColors
-            if vol > 150:
-                spawnChance = 1
-                useCol = intenseRippleColors
-        else:
-            self.volume[self.vIdx] = 0
+        vol = self.volumeHistory[self.vIdx]
+        # if vol > 2:
+        #     spawnChance = 60
+        # if vol > :
+        #     spawnChance = 25
+        if vol > 10:
+            spawnChance = 5
+            useCol = intenseRippleColors
+        if vol > 20:
+            spawnChance = 1
+            useCol = intenseRippleColors
 
         for i in range(0, len(self.ripples)):
             ripple = self.ripples[i]
@@ -263,11 +222,9 @@ class ChromanceRippleEffect(TemporalEffect):
 
         # smoothly transition volume
 
-        multiplier = (math.log10(moving_window_sum(self.volume, self.vIdx, 0.8)+1)+2)/2
-        # print(multiplier)
+        # multiplier = (math.log10(moving_window_sum(self.volumeHistory, self.vIdx, 0.8)+1)+2)
+        multiplier = 1 + vol/10
         self.pixels = pixels * multiplier
-        self.vIdx = (self.vIdx + 1) % len(self.volume)
-        self.wroteVol = False
 
 def moving_window_sum(volume, index, decay):
     window_sum = volume[index]
